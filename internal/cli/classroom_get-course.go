@@ -23,9 +23,6 @@ func newClassroomGetCourseCmd(flags *rootFlags) *cobra.Command {
 		Example:     "  skool-pp-cli classroom get-course --community example-value --course example-value",
 		Annotations: map[string]string{"pp:endpoint": "classroom.get-course", "pp:method": "GET", "pp:path": "/_next/data/{buildId}/{community}/classroom/{course_slug}.json", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !cmd.Flags().Changed("community") && !flags.dryRun {
-				return fmt.Errorf("required flag \"%s\" not set", "community")
-			}
 			if !cmd.Flags().Changed("course") && !flags.dryRun {
 				return fmt.Errorf("required flag \"%s\" not set", "course")
 			}
@@ -33,9 +30,13 @@ func newClassroomGetCourseCmd(flags *rootFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			community, err := requireCommunity(flagCommunity, c)
+			if err != nil {
+				return err
+			}
 
 			path := "/_next/data/{buildId}/{community}/classroom/{course_slug}.json"
-			path = replacePathParam(path, "community", fmt.Sprintf("%v", flagCommunity))
+			path = replacePathParam(path, "community", community)
 			path = replacePathParam(path, "course_slug", fmt.Sprintf("%v", flagCourseSlug))
 			params := map[string]string{}
 			if flagG != "" {

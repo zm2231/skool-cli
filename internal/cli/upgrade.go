@@ -69,33 +69,44 @@ same folder, it is upgraded too.`,
 				fmt.Fprintf(out, "skool-pp-cli %s is available (you have %s). Run: skool-pp-cli upgrade\n", latest.Version(), current)
 				return nil
 			}
-			if flags.dryRun {
-				fmt.Fprintf(out, "would upgrade skool-pp-cli %s -> %s from %s\n", current, latest.Version(), latest.AssetURL)
-				return nil
-			}
-
 			exe, err := selfupdate.ExecutablePath()
 			if err != nil {
 				return fmt.Errorf("locating this binary: %w", err)
 			}
-			if err := updater.UpdateTo(ctx, latest, exe); err != nil {
-				if errors.Is(err, os.ErrPermission) {
-					return fmt.Errorf("cannot replace %s (permission denied); rerun with permission to write that folder: %w", exe, err)
-				}
-				return fmt.Errorf("upgrading %s: %w", exe, err)
-			}
-			upgraded := []string{exe}
-
 			mcpName := "skool-pp-mcp"
 			if runtime.GOOS == "windows" {
 				mcpName += ".exe"
 			}
-			mcp := filepath.Join(filepath.Dir(exe), mcpName)
-			if _, statErr := os.Stat(mcp); statErr == nil {
-				if err := updater.UpdateTo(ctx, latest, mcp); err != nil {
-					return fmt.Errorf("skool-pp-cli upgraded to %s, but upgrading %s failed: %w", latest.Version(), mcp, err)
+			targets := []string{}
+			if mcp := filepath.Join(filepath.Dir(exe), mcpName); fileExists(mcp) {
+				targets = append(targets, mcp)
+			}
+			// The CLI goes last: its version is what marks the upgrade done, so a
+			// failure on any earlier binary leaves the CLI old and a rerun retries.
+			targets = append(targets, exe)
+
+			if flags.dryRun {
+				if flags.asJSON {
+					return printJSONFiltered(out, map[string]any{
+						"current":     current,
+						"latest":      latest.Version(),
+						"asset_url":   latest.AssetURL,
+						"would_write": targets,
+					}, flags)
 				}
-				upgraded = append(upgraded, mcp)
+				fmt.Fprintf(out, "would upgrade %v from %s to %s (%s)\n", targets, current, latest.Version(), latest.AssetURL)
+				return nil
+			}
+
+			upgraded := []string{}
+			for _, target := range targets {
+				if err := updater.UpdateTo(ctx, latest, target); err != nil {
+					if errors.Is(err, os.ErrPermission) {
+						return fmt.Errorf("cannot replace %s (permission denied); rerun with permission to write that folder: %w", target, err)
+					}
+					return fmt.Errorf("upgrading %s to %s: %w", target, latest.Version(), err)
+				}
+				upgraded = append(upgraded, target)
 			}
 
 			if flags.asJSON {
@@ -113,4 +124,9 @@ same folder, it is upgraded too.`,
 	}
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "Only report whether a newer release exists")
 	return cmd
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }

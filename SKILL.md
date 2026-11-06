@@ -32,8 +32,9 @@ skool-pp-cli sync --community <slug>
 skool-pp-cli posts top --community <slug> --since 7d --top 10 --by engagement --json
 #   --by: engagement (upvotes + 3x comments), upvotes, comments, newest
 
-# One post with its comment tree (the post's id comes from posts top / posts list)
-skool-pp-cli posts get <post-id> --json
+# One post with its comment tree. The slug is the post's `name` field in posts top / posts list,
+# or the last part of its URL (skool.com/<community>/<slug>)
+skool-pp-cli posts get --community <slug> --slug <post-slug> --json
 
 # What's new since a time
 skool-pp-cli digest since 24h --community <slug> --json

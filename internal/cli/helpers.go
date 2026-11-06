@@ -1357,3 +1357,15 @@ func defaultDBPath(name string) string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "share", name, "data.db")
 }
+
+func requireCommunity(flagValue string, c *client.Client) (string, error) {
+	if v := strings.TrimSpace(flagValue); v != "" {
+		return v, nil
+	}
+	if c != nil && c.Config != nil {
+		if v := strings.TrimSpace(c.Config.TemplateVars["community"]); v != "" {
+			return v, nil
+		}
+	}
+	return "", usageErr(fmt.Errorf("no community: pass --community <slug>, set SKOOL_COMMUNITY, or set template_vars.community in the config"))
+}

@@ -22,16 +22,17 @@ func newCommunityLeaderboardTabCmd(flags *rootFlags) *cobra.Command {
 		Example:     "  skool-pp-cli community leaderboard-tab --community example-value",
 		Annotations: map[string]string{"pp:endpoint": "community.leaderboard-tab", "pp:method": "GET", "pp:path": "/_next/data/{buildId}/{community}.json", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !cmd.Flags().Changed("community") && !flags.dryRun {
-				return fmt.Errorf("required flag \"%s\" not set", "community")
-			}
 			c, err := flags.newClient()
+			if err != nil {
+				return err
+			}
+			community, err := requireCommunity(flagCommunity, c)
 			if err != nil {
 				return err
 			}
 
 			path := "/_next/data/{buildId}/{community}.json"
-			path = replacePathParam(path, "community", fmt.Sprintf("%v", flagCommunity))
+			path = replacePathParam(path, "community", community)
 			params := map[string]string{}
 			if flagG != "" {
 				params["g"] = fmt.Sprintf("%v", flagG)

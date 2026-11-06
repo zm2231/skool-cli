@@ -23,9 +23,6 @@ func newPostsGetCmd(flags *rootFlags) *cobra.Command {
 		Example:     "  skool-pp-cli posts get --community example-value --slug example-resource",
 		Annotations: map[string]string{"pp:endpoint": "posts.get", "pp:method": "GET", "pp:path": "/_next/data/{buildId}/{community}/{post_name}.json", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !cmd.Flags().Changed("community") && !flags.dryRun {
-				return fmt.Errorf("required flag \"%s\" not set", "community")
-			}
 			if !cmd.Flags().Changed("slug") && !flags.dryRun {
 				return fmt.Errorf("required flag \"%s\" not set", "slug")
 			}
@@ -33,9 +30,13 @@ func newPostsGetCmd(flags *rootFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			community, err := requireCommunity(flagCommunity, c)
+			if err != nil {
+				return err
+			}
 
 			path := "/_next/data/{buildId}/{community}/{post_name}.json"
-			path = replacePathParam(path, "community", fmt.Sprintf("%v", flagCommunity))
+			path = replacePathParam(path, "community", community)
 			path = replacePathParam(path, "post_name", fmt.Sprintf("%v", flagPostName))
 			params := map[string]string{}
 			if flagG != "" {
